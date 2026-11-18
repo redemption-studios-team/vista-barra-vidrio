@@ -39,7 +39,13 @@ jobs:
                   H = info["height"]
                   tops = pg.evaluate("() => [...document.querySelectorAll('body > main > [data-tone]')].map(e => [e.dataset.tone, Math.round(e.getBoundingClientRect().top + scrollY)])")
                   log.append("TOPS %d %s" % (w, tops))
-                  ys = [("top", 0), ("morph", 60)]
+                  ys = [("top", 0)]
+                  for nm, yy in (("morph20", 20), ("morph40", 40), ("morph60", 60)):
+                      pg.evaluate("() => window.scrollTo(0, 0)")
+                      pg.wait_for_timeout(1000)
+                      pg.evaluate("y => window.scrollTo(0, y)", yy)
+                      pg.wait_for_timeout(90)
+                      pg.screenshot(path="out/w%d-%s.png" % (w, nm), clip={"x":0,"y":0,"width":w,"height":260 if w>500 else 200})
                   lt = [t for t in tops if t[0] == "light"]
                   if lt:
                       y0 = lt[0][1]
