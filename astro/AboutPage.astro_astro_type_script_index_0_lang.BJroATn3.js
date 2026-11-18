@@ -1,0 +1,1 @@
+import{d as e,o as t,u as n}from"./motion.BichRfg3.js";var r=document.querySelector(`[data-mission]`);if(r&&!t()){let t=Array.from(r.querySelectorAll(`[data-mission-word]`)),i=t.map(t=>e.quickSetter(t,`opacity`));n.create({trigger:r,start:`top 70%`,end:`bottom 55%`,scrub:!0,onUpdate:e=>{let n=e.progress*t.length;i.forEach((e,t)=>e(.16+.84*Math.min(1,Math.max(0,n-t))))}})}
