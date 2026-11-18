@@ -49,7 +49,7 @@ jobs:
                   ys += [("p45", int(H*0.45)), ("p65", int(H*0.65))]
                   for name, y in ys:
                       pg.evaluate("y => window.scrollTo(0, y)", max(0, y))
-                      pg.wait_for_timeout(250 if name == "morph" else 1500)
+                      pg.wait_for_timeout(90 if name == "morph" else 1500)
                       dbg = pg.evaluate("""() => { const h=document.querySelector('header'); const m=document.querySelector('[data-mirror]'); const s=document.querySelector('[data-mirror-scroll]'); const g=document.querySelector('[data-glass]');
                         const cs=s&&getComputedStyle(s); const pgc=s&&s.firstElementChild;
                         return {scrollY: Math.round(scrollY), under: h.dataset.under, mirrorOn: h.hasAttribute('data-mirror-on'), refract: !!document.querySelector('.rs-mirror--refract'), lum: h.style.getPropertyValue('--rs-lum'),
