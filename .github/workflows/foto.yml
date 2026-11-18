@@ -5,25 +5,48 @@ permissions: {}
 jobs:
   foto:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
-      - name: Capturas y consola con Chrome
+      - name: Playwright con el Chrome del runner
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -u
-          C="$(command -v google-chrome || command -v google-chrome-stable)"
-          U="https://redemption-studios-team.github.io/vista-barra-vidrio/"
+          set -eu
+          python3 -m pip install -q --user playwright==1.48.0
           mkdir out
-          for w in 1440 390; do
-            "$C" --headless=new --no-sandbox --hide-scrollbars --window-size=$w,900 --virtual-time-budget=8000 --screenshot=out/top-$w.png "$U" 2>/dev/null || true
-          done
-          "$C" --headless=new --no-sandbox --enable-logging=stderr --v=0 --virtual-time-budget=8000 --dump-dom "$U" > out/dom.html 2> out/consola.txt || true
-          grep -i "console\|error\|uncaught" out/consola.txt | head -60 > out/errores.txt || true
-          grep -o 'data-mirror-on[^ >]*\|class="rs-mirror[^"]*"' out/dom.html | head > out/espejo.txt || true
-          git init -q out-repo && cd out-repo && cp ../out/*.png ../out/errores.txt ../out/espejo.txt . 
+          cat > f.py <<'PY'
+          from playwright.sync_api import sync_playwright
+          U = "https://redemption-studios-team.github.io/vista-barra-vidrio/"
+          log = []
+          with sync_playwright() as p:
+              b = p.chromium.launch(channel="chrome")
+              for w, h in ((1440, 900), (390, 844)):
+                  pg = b.new_page(viewport={"width": w, "height": h})
+                  pg.on("console", lambda m: log.append("%s %s" % (m.type, m.text)))
+                  pg.on("pageerror", lambda e: log.append("PAGEERROR %s" % e))
+                  pg.on("requestfailed", lambda r: log.append("FAILED %s" % r.url))
+                  pg.on("response", lambda r: r.status >= 400 and log.append("HTTP %s %s" % (r.status, r.url)))
+                  pg.goto(U, wait_until="networkidle")
+                  pg.wait_for_timeout(2500)
+                  info = pg.evaluate("""() => { const h=document.querySelector('header'); const g=document.querySelector('[data-glass]');
+                    return {mirrorOn: !!document.querySelector('[data-mirror-on]'), filter: !!document.querySelector('#rs-glass feDisplacementMap'),
+                      under: h && (h.dataset.under||h.getAttribute('data-tone')||''), clone: document.querySelector('[data-mirror-scroll]')?.childElementCount,
+                      glassBg: g && getComputedStyle(g).backgroundColor, tones: [...document.querySelectorAll('[data-tone]')].map(e=>e.dataset.tone).join(','),
+                      height: document.documentElement.scrollHeight} }""")
+                  log.append("INFO %d %s" % (w, info))
+                  H = info["height"]
+                  for i, y in enumerate([0, int(H*0.25), int(H*0.45), int(H*0.65), int(H*0.85)]):
+                      pg.evaluate("y => window.scrollTo(0, y)", y)
+                      pg.wait_for_timeout(1200)
+                      pg.screenshot(path="out/w%d-%d.png" % (w, i), clip={"x":0,"y":0,"width":w,"height":260 if w>500 else 200})
+                  pg.close()
+              b.close()
+          open("out/log.txt","w").write("\n".join(log))
+          PY
+          python3 f.py
+          git init -q r && cd r && cp ../out/* . 
           git config user.name "foto [bot]"; git config user.email "redemptionstudios.team@gmail.com"
           git checkout -q --orphan fotos && git add -A && git commit -q -m fotos
           git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/fotos
