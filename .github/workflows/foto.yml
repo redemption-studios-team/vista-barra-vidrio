@@ -39,24 +39,24 @@ jobs:
                   H = info["height"]
                   tops = pg.evaluate("() => [...document.querySelectorAll('main > [data-tone]')].map(e => [e.dataset.tone, Math.round(e.getBoundingClientRect().top + scrollY)])")
                   log.append("TOPS %d %s" % (w, tops))
-                  ys = [("top", 0)]
+                  ys = [("top", 0), ("morph", 60)]
                   lt = [t for t in tops if t[0] == "light"]
                   if lt:
                       y0 = lt[0][1]
                       ys += [("pre", y0 - 90), ("edge", y0 - 30), ("in", y0 + 40), ("mid", y0 + 300)]
-                      for nm, d in (("bm80", -80), ("bm40", -40), ("bm15", -15), ("b0", 0), ("bp15", 15), ("bp40", 40), ("bp80", 80)):
+                      for nm, d in (("bm80", -80), ("bm40", -40), ("bm15", -15), ("bm8", -8), ("b0", 0), ("bp8", 8), ("bp15", 15), ("bp40", 40), ("bp80", 80)):
                           ys.append((nm, y0 - 42 + d))
                   ys += [("p45", int(H*0.45)), ("p65", int(H*0.65))]
                   for name, y in ys:
                       pg.evaluate("y => window.scrollTo(0, y)", max(0, y))
-                      pg.wait_for_timeout(1500)
+                      pg.wait_for_timeout(250 if name == "morph" else 1500)
                       dbg = pg.evaluate("""() => { const h=document.querySelector('header'); const m=document.querySelector('[data-mirror]'); const s=document.querySelector('[data-mirror-scroll]'); const g=document.querySelector('[data-glass]');
                         const cs=s&&getComputedStyle(s); const pgc=s&&s.firstElementChild;
                         return {scrollY: Math.round(scrollY), under: h.dataset.under, mirrorOn: h.hasAttribute('data-mirror-on'), refract: !!document.querySelector('.rs-mirror--refract'), lum: h.style.getPropertyValue('--rs-lum'),
                           tf: cs&&cs.transform, range: m&&m.style.getPropertyValue('--rs-scroll-range'), mx: m&&m.style.getPropertyValue('--rs-mirror-x'), anim: cs&&cs.animationName,
                           pageH: pgc&&pgc.style.height, kids: pgc&&[...pgc.children].map(c=>c.tagName+':'+c.style.top+':'+c.childElementCount).join('|'),
                           bar: (()=>{const r=g.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)]})(),
-                          cloneBg: pgc&&getComputedStyle(pgc).backgroundColor} }""")
+                          cloneBg: pgc&&getComputedStyle(pgc).backgroundColor, split: h.hasAttribute('data-split'), clipA: (document.querySelector('.rs-vis--a')||{style:{}}).style.clipPath, clipB: (document.querySelector('.rs-vis--b')||{style:{}}).style.clipPath, bgOpacity: getComputedStyle(g).opacity} }""")
                       log.append("DBG %d %s %s" % (w, name, dbg))
                       pg.screenshot(path="out/w%d-%s.png" % (w, name), clip={"x":0,"y":0,"width":w,"height":260 if w>500 else 200})
                       if name in ("mid", "top") and w > 500:
