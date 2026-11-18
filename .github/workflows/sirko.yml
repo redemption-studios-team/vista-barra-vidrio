@@ -1,0 +1,35 @@
+name: sirko-error
+on:
+  workflow_dispatch:
+permissions: {}
+jobs:
+  e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions: {}
+    steps:
+      - name: Capturar el error de la demo de Sirko
+        run: |
+          set -eu
+          python3 -m pip install -q --user playwright==1.48.0
+          cat > f.py <<'PY'
+          from playwright.sync_api import sync_playwright
+          U = "https://redemption-studios-team.github.io/demo-old-sirko/"
+          with sync_playwright() as p:
+              b = p.chromium.launch(channel="chrome")
+              for w in (1440, 390):
+                  pg = b.new_page(viewport={"width": w, "height": 900})
+                  pg.on("console", lambda m: print("CONSOLE", m.type, m.text))
+                  pg.on("pageerror", lambda e: print("PAGEERROR", e))
+                  def route(r):
+                      resp = r.fetch(); body = resp.text()
+                      body = body.replace("catch(err){root.classList.remove('motion')}", "catch(err){console.error('SIRKO-ERR '+(err&&err.stack));root.classList.remove('motion')}")
+                      r.fulfill(response=resp, body=body)
+                  pg.route(U, route)
+                  pg.goto(U, wait_until="load")
+                  pg.wait_for_timeout(2000)
+                  print("W", w, "filters:", pg.evaluate("document.querySelectorAll('.filters button').length"))
+                  pg.close()
+              b.close()
+          PY
+          python3 f.py
