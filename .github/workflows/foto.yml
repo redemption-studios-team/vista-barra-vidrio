@@ -37,10 +37,26 @@ jobs:
                       height: document.documentElement.scrollHeight} }""")
                   log.append("INFO %d %s" % (w, info))
                   H = info["height"]
-                  for i, y in enumerate([0, int(H*0.25), int(H*0.45), int(H*0.65), int(H*0.85)]):
-                      pg.evaluate("y => window.scrollTo(0, y)", y)
-                      pg.wait_for_timeout(1200)
-                      pg.screenshot(path="out/w%d-%d.png" % (w, i), clip={"x":0,"y":0,"width":w,"height":260 if w>500 else 200})
+                  tops = pg.evaluate("() => [...document.querySelectorAll('main > [data-tone]')].map(e => [e.dataset.tone, Math.round(e.getBoundingClientRect().top + scrollY)])")
+                  log.append("TOPS %d %s" % (w, tops))
+                  ys = [("top", 0)]
+                  lt = [t for t in tops if t[0] == "light"]
+                  if lt:
+                      y0 = lt[0][1]
+                      ys += [("pre", y0 - 90), ("edge", y0 - 30), ("in", y0 + 40), ("mid", y0 + 300)]
+                  ys += [("p45", int(H*0.45)), ("p65", int(H*0.65))]
+                  for name, y in ys:
+                      pg.evaluate("y => window.scrollTo(0, y)", max(0, y))
+                      pg.wait_for_timeout(1500)
+                      dbg = pg.evaluate("""() => { const h=document.querySelector('header'); const m=document.querySelector('[data-mirror]'); const s=document.querySelector('[data-mirror-scroll]'); const g=document.querySelector('[data-glass]');
+                        const cs=s&&getComputedStyle(s); const pgc=s&&s.firstElementChild;
+                        return {scrollY: Math.round(scrollY), under: h.dataset.under, mirrorOn: h.hasAttribute('data-mirror-on'), refract: m&&m.classList.contains('rs-mirror--refract'),
+                          tf: cs&&cs.transform, range: m&&m.style.getPropertyValue('--rs-scroll-range'), mx: m&&m.style.getPropertyValue('--rs-mirror-x'), anim: cs&&cs.animationName,
+                          pageH: pgc&&pgc.style.height, kids: pgc&&[...pgc.children].map(c=>c.tagName+':'+c.style.top+':'+c.childElementCount).join('|'),
+                          bar: (()=>{const r=g.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)]})(),
+                          cloneBg: pgc&&getComputedStyle(pgc).backgroundColor} }""")
+                      log.append("DBG %d %s %s" % (w, name, dbg))
+                      pg.screenshot(path="out/w%d-%s.png" % (w, name), clip={"x":0,"y":0,"width":w,"height":260 if w>500 else 200})
                   pg.close()
               b.close()
           open("out/log.txt","w").write("\n".join(log))
