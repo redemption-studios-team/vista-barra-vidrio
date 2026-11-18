@@ -69,6 +69,24 @@ jobs:
                           pg.screenshot(path="out/w%d-%s-L.png" % (w, name), clip={"x":10,"y":0,"width":260,"height":100})
                           pg.screenshot(path="out/w%d-%s-R.png" % (w, name), clip={"x":w-270,"y":0,"width":260,"height":100})
                   pg.close()
+              # menu abierto (390 y 768): desde arriba, sobre crema y sobre oscuro
+              for w, h in ((390, 844), (768, 1024)):
+                  for st in ("top", "crema", "oscuro"):
+                      pg = b.new_page(viewport={"width": w, "height": h}, device_scale_factor=2)
+                      pg.goto(U, wait_until="networkidle")
+                      pg.wait_for_timeout(2500)
+                      if st != "top":
+                          tops = pg.evaluate("() => [...document.querySelectorAll('body > main > [data-tone]')].map(e => [e.dataset.tone, Math.round(e.getBoundingClientRect().top + scrollY)])")
+                          y0 = [t for t in tops if t[0] == "light"][0][1]
+                          pg.evaluate("y => window.scrollTo(0, y)", y0 + 300 if st == "crema" else 150)
+                          pg.wait_for_timeout(1500)
+                      pg.click("[data-menu-toggle]:not([aria-hidden])")
+                      pg.wait_for_timeout(1200)
+                      pg.screenshot(path="out/menu-%d-%s.png" % (w, st), clip={"x":0,"y":0,"width":w,"height":300})
+                      pg.keyboard.press("Escape")
+                      pg.wait_for_timeout(900)
+                      pg.screenshot(path="out/menu-%d-%s-cerrado.png" % (w, st), clip={"x":0,"y":0,"width":w,"height":300})
+                      pg.close()
               b.close()
           open("out/log.txt","w").write("\n".join(log))
           PY
