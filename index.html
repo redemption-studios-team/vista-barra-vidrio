@@ -64,7 +64,7 @@
             want = /^es(?:[-_]|$)/i.test(first) ? 'es' : 'en';
           }
           // Esta página ya está en el idioma que corresponde.
-          if (want !== altLang) return;
+          return; // vista previa: sin redirección de idioma
 
           // Una sola redirección por sesión; si no se puede guardar la marca, no se redirige (sin bucles).
           if (get('sessionStorage', 'rs-lang-redirected')) return;
