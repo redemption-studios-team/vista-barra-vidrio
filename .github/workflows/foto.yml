@@ -1,0 +1,29 @@
+name: foto
+on:
+  workflow_dispatch:
+permissions: {}
+jobs:
+  foto:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Capturas y consola con Chrome
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          C="$(command -v google-chrome || command -v google-chrome-stable)"
+          U="https://redemption-studios-team.github.io/vista-barra-vidrio/"
+          mkdir out
+          for w in 1440 390; do
+            "$C" --headless=new --no-sandbox --hide-scrollbars --window-size=$w,900 --virtual-time-budget=8000 --screenshot=out/top-$w.png "$U" 2>/dev/null || true
+          done
+          "$C" --headless=new --no-sandbox --enable-logging=stderr --v=0 --virtual-time-budget=8000 --dump-dom "$U" > out/dom.html 2> out/consola.txt || true
+          grep -i "console\|error\|uncaught" out/consola.txt | head -60 > out/errores.txt || true
+          grep -o 'data-mirror-on[^ >]*\|class="rs-mirror[^"]*"' out/dom.html | head > out/espejo.txt || true
+          git init -q out-repo && cd out-repo && cp ../out/*.png ../out/errores.txt ../out/espejo.txt . 
+          git config user.name "foto [bot]"; git config user.email "redemptionstudios.team@gmail.com"
+          git checkout -q --orphan fotos && git add -A && git commit -q -m fotos
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/fotos
