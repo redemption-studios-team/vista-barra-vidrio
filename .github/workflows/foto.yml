@@ -23,7 +23,7 @@ jobs:
           with sync_playwright() as p:
               b = p.chromium.launch(channel="chrome")
               for w, h in ((1440, 900), (390, 844)):
-                  pg = b.new_page(viewport={"width": w, "height": h})
+                  pg = b.new_page(viewport={"width": w, "height": h}, device_scale_factor=2)
                   pg.on("console", lambda m: log.append("%s %s" % (m.type, m.text)))
                   pg.on("pageerror", lambda e: log.append("PAGEERROR %s" % e))
                   pg.on("requestfailed", lambda r: log.append("FAILED %s" % r.url))
@@ -57,6 +57,9 @@ jobs:
                           cloneBg: pgc&&getComputedStyle(pgc).backgroundColor} }""")
                       log.append("DBG %d %s %s" % (w, name, dbg))
                       pg.screenshot(path="out/w%d-%s.png" % (w, name), clip={"x":0,"y":0,"width":w,"height":260 if w>500 else 200})
+                      if name in ("mid", "top") and w > 500:
+                          pg.screenshot(path="out/w%d-%s-L.png" % (w, name), clip={"x":10,"y":0,"width":260,"height":100})
+                          pg.screenshot(path="out/w%d-%s-R.png" % (w, name), clip={"x":w-270,"y":0,"width":260,"height":100})
                   pg.close()
               b.close()
           open("out/log.txt","w").write("\n".join(log))
