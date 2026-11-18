@@ -37,7 +37,7 @@ jobs:
                       height: document.documentElement.scrollHeight} }""")
                   log.append("INFO %d %s" % (w, info))
                   H = info["height"]
-                  tops = pg.evaluate("() => [...document.querySelectorAll('main > [data-tone]')].map(e => [e.dataset.tone, Math.round(e.getBoundingClientRect().top + scrollY)])")
+                  tops = pg.evaluate("() => [...document.querySelectorAll('body > main > [data-tone]')].map(e => [e.dataset.tone, Math.round(e.getBoundingClientRect().top + scrollY)])")
                   log.append("TOPS %d %s" % (w, tops))
                   ys = [("top", 0), ("morph", 60)]
                   lt = [t for t in tops if t[0] == "light"]
