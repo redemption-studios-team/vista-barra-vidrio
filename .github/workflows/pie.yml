@@ -18,7 +18,7 @@ jobs:
           mkdir out
           cat > f.py <<'PY'
           from playwright.sync_api import sync_playwright
-          U = "https://redemption-studios-team.github.io/vista-barra-vidrio/?v=7"
+          U = "https://redemption-studios-team.github.io/vista-barra-vidrio/?v=8"
           log = []
           with sync_playwright() as p:
               b = p.chromium.launch(channel="chrome")
