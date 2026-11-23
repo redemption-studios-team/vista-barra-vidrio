@@ -1,0 +1,48 @@
+name: pie
+on:
+  workflow_dispatch:
+permissions: {}
+jobs:
+  pie:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Capturas del pie en la vista publicada
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          python3 -m pip install -q --user playwright==1.48.0
+          mkdir out
+          cat > f.py <<'PY'
+          from playwright.sync_api import sync_playwright
+          U = "https://redemption-studios-team.github.io/vista-barra-vidrio/?v=6"
+          log = []
+          with sync_playwright() as p:
+              b = p.chromium.launch(channel="chrome")
+              for w, h in ((1440, 900), (390, 844)):
+                  pg = b.new_page(viewport={"width": w, "height": h}, device_scale_factor=2, locale="es-US")
+                  pg.on("pageerror", lambda e: log.append("PAGEERROR %s" % e))
+                  pg.on("response", lambda r: r.status >= 400 and log.append("HTTP %s %s" % (r.status, r.url)))
+                  pg.goto(U, wait_until="networkidle")
+                  pg.wait_for_timeout(2000)
+                  pg.evaluate("() => window.scrollTo(0, document.documentElement.scrollHeight)")
+                  pg.wait_for_timeout(2500)
+                  pg.screenshot(path="out/fondo-%d.png" % w)
+                  a = pg.get_by_role("contentinfo").locator(".ft-partner a")
+                  log.append("LINK %d %s rel=%s url=%s" % (w, a.get_attribute("href"), a.get_attribute("rel"), pg.url))
+                  pg.close()
+          open("out/log.txt", "w").write("\n".join(log))
+          print("\n".join(log))
+          PY
+          python3 f.py
+          cd out
+          git init -q
+          git config user.name "pie [bot]"
+          git config user.email "redemptionstudios.team@gmail.com"
+          git checkout -q --orphan capturas-pie
+          git add -A
+          git commit -q -m "capturas del pie"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/capturas-pie
